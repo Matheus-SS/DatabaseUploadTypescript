@@ -39,9 +39,17 @@ class CreateTransactionService {
       throw new AppError('Outcome greater than your total');
     }
 
+    if (value === 0) {
+      throw new AppError('Value cant be zero ');
+    }
+
+    const n = value;
+    const newValue = Number(n.toFixed(2));
+    // convert to number type again to store in database
+
     const newTransaction = transactionsRepository.create({
       title,
-      value,
+      value: newValue,
       type,
       category: categoryExists,
     });
