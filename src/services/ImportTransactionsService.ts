@@ -1,7 +1,7 @@
 import csvParse from 'csv-parse';
 import fs from 'fs';
-
 import { getRepository, getCustomRepository, In } from 'typeorm';
+
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
 import TransactionsRepository from '../repositories/TransactionsRepository';
@@ -30,6 +30,11 @@ class ImportTransactionsService {
     });
 
     const parseCSV = readCSVStream.pipe(parseStream);
+
+    parseCSV.on('error', async err => {
+      console.log(err.message);
+      await fs.promises.unlink(csvFilePath);
+    });
 
     parseCSV.on('data', async line => {
       const [title, type, value, category] = line.map((word: string) => word);
