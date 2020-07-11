@@ -1,7 +1,7 @@
 import csvParse from 'csv-parse';
 import fs from 'fs';
 import { getRepository, getCustomRepository, In } from 'typeorm';
-
+import AppError from '../errors/AppError';
 import Transaction from '../models/Transaction';
 import Category from '../models/Category';
 import TransactionsRepository from '../repositories/TransactionsRepository';
@@ -31,11 +31,6 @@ class ImportTransactionsService {
 
     const parseCSV = readCSVStream.pipe(parseStream);
 
-    parseCSV.on('error', async err => {
-      console.log(err.message);
-      await fs.promises.unlink(csvFilePath);
-    });
-
     parseCSV.on('data', async line => {
       const [title, type, value, category] = line.map((word: string) => word);
 
@@ -43,9 +38,15 @@ class ImportTransactionsService {
       categories.push(category);
     });
 
-    await new Promise(resolve => {
-      parseCSV.on('end', resolve);
-    });
+    try {
+      await new Promise((resolve, reject) => {
+        parseCSV.on('error', reject);
+        parseCSV.on('end', resolve);
+      });
+    } catch (error) {
+      await fs.promises.unlink(csvFilePath);
+      throw new AppError('Arquivo CSV inválido.');
+    }
 
     const categoriesTitleNotRepeated = Array.from(new Set(categories));
 
